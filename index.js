@@ -69,6 +69,10 @@ app.get('/stream/:type/:id.json', async (req, res) => {
     res.json(result);
 });
 
+app.get('/', (req, res) => {
+    res.send('Add-on do Stremio ativo. Use /manifest.json para acessar o manifest.');
+});
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
     console.log(`Servidor rodando na porta ${port}`);
