@@ -24,17 +24,27 @@ builder.defineCatalogHandler(async ({ type, id }) => {
         try {
             console.log('Tentando carregar o feed do Nyaa.si...');
             const feed = await parser.parseURL('https://nyaa.si/?q=Multi+Subs&f=0&c=1_0&page=rss');
+            if (!feed || !feed.items) {
+                console.error('Feed inválido ou vazio:', feed);
+                return { metas: [] };
+            }
             console.log(`Feed carregado com ${feed.items.length} itens`);
-            const catalog = feed.items.map(item => ({
-                id: item.guid,
-                type: 'series',
-                name: item.title,
-                description: item.contentSnippet || 'Anime with multiple subtitles'
-            }));
+            const catalog = feed.items.map(item => {
+                if (!item.guid || !item.title) {
+                    console.warn('Item inválido no feed:', item);
+                    return null;
+                }
+                return {
+                    id: item.guid,
+                    type: 'series',
+                    name: item.title,
+                    description: item.contentSnippet || 'Anime with multiple subtitles'
+                };
+            }).filter(item => item !== null);
             console.log(`Catálogo gerado com ${catalog.length} itens`);
             return { metas: catalog };
         } catch (error) {
-            console.error('Erro ao carregar catálogo:', error.message);
+            console.error('Erro ao carregar catálogo:', error.message, error.stack);
             return { metas: [] };
         }
     }
@@ -48,6 +58,10 @@ builder.defineStreamHandler(async ({ type, id }) => {
     try {
         console.log('Tentando carregar o feed do Nyaa.si para stream...');
         const feed = await parser.parseURL('https://nyaa.si/?q=Multi+Subs&f=0&c=1_0&page=rss');
+        if (!feed || !feed.items) {
+            console.error('Feed inválido ou vazio para stream:', feed);
+            return { streams: [] };
+        }
         console.log(`Feed carregado com ${feed.items.length} itens para stream`);
         const item = feed.items.find(i => i.guid === id);
         if (item) {
@@ -57,7 +71,7 @@ builder.defineStreamHandler(async ({ type, id }) => {
         console.log('Nenhum item encontrado para o ID fornecido');
         return { streams: [] };
     } catch (error) {
-        console.error('Erro ao carregar stream:', error.message);
+        console.error('Erro ao carregar stream:', error.message, error.stack);
         return { streams: [] };
     }
 });
@@ -80,8 +94,8 @@ app.get('/catalog/:type/:id.json', async (req, res) => {
         res.setHeader('Content-Type', 'application/json');
         res.json(result);
     } catch (error) {
-        console.error('Erro ao processar requisição /catalog:', error.message);
-        res.status(500).json({ error: 'Erro interno ao carregar o catálogo' });
+        console.error('Erro ao processar requisição /catalog:', error.message, error.stack);
+        res.status(500).json({ error: 'Erro interno ao carregar o catálogo', details: error.message });
     }
 });
 
@@ -93,8 +107,8 @@ app.get('/stream/:type/:id.json', async (req, res) => {
         res.setHeader('Content-Type', 'application/json');
         res.json(result);
     } catch (error) {
-        console.error('Erro ao processar requisição /stream:', error.message);
-        res.status(500).json({ error: 'Erro interno ao carregar o stream' });
+        console.error('Erro ao processar requisição /stream:', error.message, error.stack);
+        res.status(500).json({ error: 'Erro interno ao carregar o stream', details: error.message });
     }
 });
 
