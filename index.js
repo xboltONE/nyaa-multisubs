@@ -2,7 +2,13 @@ const { addonBuilder } = require('stremio-addon-sdk');
 const Parser = require('rss-parser');
 const express = require('express');
 
-const parser = new Parser();
+const parser = new Parser({
+    customFields: {
+        item: [
+            ['nyaa:infoHash', 'infoHash'] // Mapeia o campo <nyaa:infoHash> para item.infoHash
+        ]
+    }
+});
 const app = express();
 
 const manifest = {
@@ -67,13 +73,19 @@ const handleStream = async ({ type, id }) => {
         const item = feed.items.find(i => i.guid === decodedId);
         if (item) {
             console.log(`Stream encontrado: ${item.title}`);
-            // Extrair o hash do torrent da descrição
-            const hashMatch = item.contentSnippet.match(/[a-fA-F0-9]{40}/);
-            if (!hashMatch) {
-                console.error('Hash do torrent não encontrado na descrição:', item.contentSnippet);
-                return { streams: [] };
+            // Usar o infoHash do campo <nyaa:infoHash>
+            let torrentHash = item.infoHash;
+            if (!torrentHash) {
+                console.error('Hash do torrent não encontrado no campo infoHash:', item);
+                // Fallback: extrair da descrição
+                const hashMatch = item.contentSnippet.match(/[a-fA-F0-9]{40}/);
+                if (!hashMatch) {
+                    console.error('Hash do torrent também não encontrado na descrição:', item.contentSnippet);
+                    return { streams: [] };
+                }
+                torrentHash = hashMatch[0];
             }
-            const torrentHash = hashMatch[0];
+            console.log(`Hash do torrent: ${torrentHash}`);
             // Construir o magnet link com mais trackers
             const magnetLink = `magnet:?xt=urn:btih:${torrentHash}&dn=${encodeURIComponent(item.title)}` +
                 `&tr=udp://tracker.opentrackr.org:1337/announce` +
