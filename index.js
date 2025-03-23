@@ -35,7 +35,7 @@ const handleCatalog = async ({ type, id }) => {
                     return null;
                 }
                 return {
-                    id: encodeURIComponent(item.guid), // Codificar o ID para uso seguro em URLs
+                    id: encodeURIComponent(item.guid),
                     type: 'series',
                     name: item.title,
                     description: item.contentSnippet || 'Anime with multiple subtitles'
@@ -63,7 +63,7 @@ const handleStream = async ({ type, id }) => {
             return { streams: [] };
         }
         console.log(`Feed carregado com ${feed.items.length} itens para stream`);
-        const decodedId = decodeURIComponent(id); // Decodificar o ID
+        const decodedId = decodeURIComponent(id);
         const item = feed.items.find(i => i.guid === decodedId);
         if (item) {
             console.log(`Stream encontrado: ${item.title}`);
@@ -74,8 +74,15 @@ const handleStream = async ({ type, id }) => {
                 return { streams: [] };
             }
             const torrentHash = hashMatch[0];
-            // Construir o magnet link
-            const magnetLink = `magnet:?xt=urn:btih:${torrentHash}&dn=${encodeURIComponent(item.title)}&tr=udp://tracker.opentrackr.org:1337/announce&tr=udp://tracker.openbittorrent.com:6969/announce`;
+            // Construir o magnet link com mais trackers
+            const magnetLink = `magnet:?xt=urn:btih:${torrentHash}&dn=${encodeURIComponent(item.title)}` +
+                `&tr=udp://tracker.opentrackr.org:1337/announce` +
+                `&tr=udp://tracker.openbittorrent.com:6969/announce` +
+                `&tr=udp://tracker.leechers-paradise.org:6969/announce` +
+                `&tr=udp://tracker.coppersurfer.tk:6969/announce` +
+                `&tr=udp://open.demonii.com:1337/announce` +
+                `&tr=udp://tracker.pirateparty.gr:6969/announce` +
+                `&tr=udp://exodus.desync.com:6969/announce`;
             console.log(`Magnet link gerado: ${magnetLink}`);
             return { streams: [{ name: item.title, url: magnetLink }] };
         }
