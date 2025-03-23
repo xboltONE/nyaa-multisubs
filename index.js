@@ -1,4 +1,4 @@
-const { addonBuilder, publishToWeb } = require('stremio-addon-sdk');
+const { addonBuilder } = require('stremio-addon-sdk');
 const Parser = require('rss-parser');
 const express = require('express');
 
@@ -17,6 +17,7 @@ const manifest = {
 
 const builder = new addonBuilder(manifest);
 
+// Definir o handler do catálogo
 builder.defineCatalogHandler(async ({ type, id }) => {
     console.log(`Recebida requisição para type=${type}, id=${id}`);
     if (type === 'series' && id === 'nyaa-multisubs') {
@@ -41,6 +42,7 @@ builder.defineCatalogHandler(async ({ type, id }) => {
     return { metas: [] };
 });
 
+// Definir o handler de stream
 builder.defineStreamHandler(async ({ type, id }) => {
     console.log(`Recebida requisição de stream para type=${type}, id=${id}`);
     try {
@@ -60,11 +62,43 @@ builder.defineStreamHandler(async ({ type, id }) => {
     }
 });
 
-// Usar publishToWeb para configurar as rotas automaticamente
-const addonInterface = builder.getInterface();
-publishToWeb(addonInterface, app);
+// Obter a interface do add-on
+const addon = builder.getInterface();
 
-// Rota adicional para a raiz (opcional)
+// Rota para o manifest
+app.get('/manifest.json', (req, res) => {
+    console.log('Requisição recebida para /manifest.json');
+    res.setHeader('Content-Type', 'application/json');
+    res.json(manifest);
+});
+
+// Rota para o catálogo
+app.get('/catalog/:type/:id.json', async (req, res) => {
+    console.log('Requisição recebida para /catalog');
+    try {
+        const result = await builder.defineCatalogHandler(req.params);
+        res.setHeader('Content-Type', 'application/json');
+        res.json(result);
+    } catch (error) {
+        console.error('Erro ao processar requisição /catalog:', error.message);
+        res.status(500).json({ error: 'Erro interno ao carregar o catálogo' });
+    }
+});
+
+// Rota para o stream
+app.get('/stream/:type/:id.json', async (req, res) => {
+    console.log('Requisição recebida para /stream');
+    try {
+        const result = await builder.defineStreamHandler(req.params);
+        res.setHeader('Content-Type', 'application/json');
+        res.json(result);
+    } catch (error) {
+        console.error('Erro ao processar requisição /stream:', error.message);
+        res.status(500).json({ error: 'Erro interno ao carregar o stream' });
+    }
+});
+
+// Rota para a raiz
 app.get('/', (req, res) => {
     console.log('Requisição recebida para /');
     res.send('Add-on do Stremio ativo. Use /manifest.json para acessar o manifest.');
