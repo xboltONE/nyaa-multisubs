@@ -66,7 +66,17 @@ const handleStream = async ({ type, id }) => {
         const item = feed.items.find(i => i.guid === id);
         if (item) {
             console.log(`Stream encontrado: ${item.title}`);
-            return { streams: [{ url: item.link, title: item.title }] };
+            // Extrair o hash do torrent da descrição (ex.: "48dcb808054040d78cef78804c0d43ceefe62509")
+            const hashMatch = item.contentSnippet.match(/[a-fA-F0-9]{40}/);
+            if (!hashMatch) {
+                console.error('Hash do torrent não encontrado na descrição:', item.contentSnippet);
+                return { streams: [] };
+            }
+            const torrentHash = hashMatch[0];
+            // Construir o magnet link
+            const magnetLink = `magnet:?xt=urn:btih:${torrentHash}&dn=${encodeURIComponent(item.title)}&tr=udp://tracker.opentrackr.org:1337/announce&tr=udp://tracker.openbittorrent.com:6969/announce`;
+            console.log(`Magnet link gerado: ${magnetLink}`);
+            return { streams: [{ name: item.title, url: magnetLink }] };
         }
         console.log('Nenhum item encontrado para o ID fornecido');
         return { streams: [] };
