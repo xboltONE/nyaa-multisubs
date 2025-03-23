@@ -1,4 +1,4 @@
-const { addonBuilder } = require('stremio-addon-sdk');
+const { addonBuilder, publishToWeb } = require('stremio-addon-sdk');
 const Parser = require('rss-parser');
 const express = require('express');
 
@@ -18,62 +18,59 @@ const manifest = {
 const builder = new addonBuilder(manifest);
 
 builder.defineCatalogHandler(async ({ type, id }) => {
+    console.log(`Recebida requisição para type=${type}, id=${id}`);
     if (type === 'series' && id === 'nyaa-multisubs') {
         try {
+            console.log('Tentando carregar o feed do Nyaa.si...');
             const feed = await parser.parseURL('https://nyaa.si/?q=Multi+Subs&f=0&c=1_0&page=rss');
+            console.log(`Feed carregado com ${feed.items.length} itens`);
             const catalog = feed.items.map(item => ({
                 id: item.guid,
                 type: 'series',
                 name: item.title,
                 description: item.contentSnippet || 'Anime with multiple subtitles'
             }));
+            console.log(`Catálogo gerado com ${catalog.length} itens`);
             return { metas: catalog };
         } catch (error) {
-            console.error('Erro ao carregar catálogo:', error);
+            console.error('Erro ao carregar catálogo:', error.message);
             return { metas: [] };
         }
     }
+    console.log('Type ou ID não correspondem, retornando catálogo vazio');
     return { metas: [] };
 });
 
 builder.defineStreamHandler(async ({ type, id }) => {
+    console.log(`Recebida requisição de stream para type=${type}, id=${id}`);
     try {
+        console.log('Tentando carregar o feed do Nyaa.si para stream...');
         const feed = await parser.parseURL('https://nyaa.si/?q=Multi+Subs&f=0&c=1_0&page=rss');
+        console.log(`Feed carregado com ${feed.items.length} itens para stream`);
         const item = feed.items.find(i => i.guid === id);
         if (item) {
+            console.log(`Stream encontrado: ${item.title}`);
             return { streams: [{ url: item.link, title: item.title }] };
         }
+        console.log('Nenhum item encontrado para o ID fornecido');
         return { streams: [] };
     } catch (error) {
-        console.error('Erro ao carregar stream:', error);
+        console.error('Erro ao carregar stream:', error.message);
         return { streams: [] };
     }
 });
 
-const addon = builder.getInterface();
+// Usar publishToWeb para configurar as rotas automaticamente
+const addonInterface = builder.getInterface();
+publishToWeb(addonInterface, app);
 
-app.get('/manifest.json', (req, res) => {
-    res.setHeader('Content-Type', 'application/json');
-    res.json(addon.manifest);
-});
-
-app.get('/catalog/:type/:id.json', async (req, res) => {
-    const result = await addon.catalogHandler(req.params);
-    res.setHeader('Content-Type', 'application/json');
-    res.json(result);
-});
-
-app.get('/stream/:type/:id.json', async (req, res) => {
-    const result = await addon.streamHandler(req.params);
-    res.setHeader('Content-Type', 'application/json');
-    res.json(result);
-});
-
+// Rota adicional para a raiz (opcional)
 app.get('/', (req, res) => {
+    console.log('Requisição recebida para /');
     res.send('Add-on do Stremio ativo. Use /manifest.json para acessar o manifest.');
 });
 
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 10000;
 app.listen(port, () => {
     console.log(`Servidor rodando na porta ${port}`);
 });
