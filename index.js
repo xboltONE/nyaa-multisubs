@@ -17,7 +17,7 @@ const manifest = {
 
 const builder = new addonBuilder(manifest);
 
-// Definir o handler do catálogo
+// Definir o handler do catálogo (apenas uma vez, durante a inicialização)
 builder.defineCatalogHandler(async ({ type, id }) => {
     console.log(`Recebida requisição para type=${type}, id=${id}`);
     if (type === 'series' && id === 'nyaa-multisubs') {
@@ -52,7 +52,7 @@ builder.defineCatalogHandler(async ({ type, id }) => {
     return { metas: [] };
 });
 
-// Definir o handler de stream
+// Definir o handler de stream (apenas uma vez, durante a inicialização)
 builder.defineStreamHandler(async ({ type, id }) => {
     console.log(`Recebida requisição de stream para type=${type}, id=${id}`);
     try {
@@ -77,7 +77,7 @@ builder.defineStreamHandler(async ({ type, id }) => {
 });
 
 // Obter a interface do add-on
-const addon = builder.getInterface();
+const addonInterface = builder.getInterface();
 
 // Rota para o manifest
 app.get('/manifest.json', (req, res) => {
@@ -90,7 +90,8 @@ app.get('/manifest.json', (req, res) => {
 app.get('/catalog/:type/:id.json', async (req, res) => {
     console.log('Requisição recebida para /catalog');
     try {
-        const result = await builder.defineCatalogHandler(req.params);
+        // Usar o handler já definido, em vez de redefini-lo
+        const result = await addonInterface.catalog(req.params.type, req.params.id);
         res.setHeader('Content-Type', 'application/json');
         res.json(result);
     } catch (error) {
@@ -103,7 +104,8 @@ app.get('/catalog/:type/:id.json', async (req, res) => {
 app.get('/stream/:type/:id.json', async (req, res) => {
     console.log('Requisição recebida para /stream');
     try {
-        const result = await builder.defineStreamHandler(req.params);
+        // Usar o handler já definido, em vez de redefini-lo
+        const result = await addonInterface.stream(req.params.type, req.params.id);
         res.setHeader('Content-Type', 'application/json');
         res.json(result);
     } catch (error) {
