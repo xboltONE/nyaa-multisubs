@@ -17,7 +17,11 @@ const manifest = {
 
 const builder = new addonBuilder(manifest);
 
-// Definir o handler do catálogo (apenas uma vez, durante a inicialização)
+// Armazenar os handlers manualmente
+let catalogHandler;
+let streamHandler;
+
+// Definir o handler do catálogo
 builder.defineCatalogHandler(async ({ type, id }) => {
     console.log(`Recebida requisição para type=${type}, id=${id}`);
     if (type === 'series' && id === 'nyaa-multisubs') {
@@ -52,7 +56,10 @@ builder.defineCatalogHandler(async ({ type, id }) => {
     return { metas: [] };
 });
 
-// Definir o handler de stream (apenas uma vez, durante a inicialização)
+// Armazenar o handler do catálogo
+catalogHandler = builder.defineCatalogHandler;
+
+// Definir o handler de stream
 builder.defineStreamHandler(async ({ type, id }) => {
     console.log(`Recebida requisição de stream para type=${type}, id=${id}`);
     try {
@@ -76,8 +83,8 @@ builder.defineStreamHandler(async ({ type, id }) => {
     }
 });
 
-// Obter a interface do add-on
-const addonInterface = builder.getInterface();
+// Armazenar o handler de stream
+streamHandler = builder.defineStreamHandler;
 
 // Rota para o manifest
 app.get('/manifest.json', (req, res) => {
@@ -90,8 +97,7 @@ app.get('/manifest.json', (req, res) => {
 app.get('/catalog/:type/:id.json', async (req, res) => {
     console.log('Requisição recebida para /catalog');
     try {
-        // Usar o handler já definido, em vez de redefini-lo
-        const result = await addonInterface.catalog(req.params.type, req.params.id);
+        const result = await catalogHandler({ type: req.params.type, id: req.params.id });
         res.setHeader('Content-Type', 'application/json');
         res.json(result);
     } catch (error) {
@@ -104,8 +110,7 @@ app.get('/catalog/:type/:id.json', async (req, res) => {
 app.get('/stream/:type/:id.json', async (req, res) => {
     console.log('Requisição recebida para /stream');
     try {
-        // Usar o handler já definido, em vez de redefini-lo
-        const result = await addonInterface.stream(req.params.type, req.params.id);
+        const result = await streamHandler({ type: req.params.type, id: req.params.id });
         res.setHeader('Content-Type', 'application/json');
         res.json(result);
     } catch (error) {
