@@ -1,1 +1,10 @@
-
+{
+  "name": "nyaa-multisubs",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "stremio-addon-sdk": "^1.0.0",
+    "rss-parser": "^3.0.0",
+    "express": "^4.0.0"
+  }
+}
