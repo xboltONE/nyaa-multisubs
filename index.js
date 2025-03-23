@@ -35,7 +35,7 @@ const handleCatalog = async ({ type, id }) => {
                     return null;
                 }
                 return {
-                    id: item.guid,
+                    id: encodeURIComponent(item.guid), // Codificar o ID para uso seguro em URLs
                     type: 'series',
                     name: item.title,
                     description: item.contentSnippet || 'Anime with multiple subtitles'
@@ -63,10 +63,11 @@ const handleStream = async ({ type, id }) => {
             return { streams: [] };
         }
         console.log(`Feed carregado com ${feed.items.length} itens para stream`);
-        const item = feed.items.find(i => i.guid === id);
+        const decodedId = decodeURIComponent(id); // Decodificar o ID
+        const item = feed.items.find(i => i.guid === decodedId);
         if (item) {
             console.log(`Stream encontrado: ${item.title}`);
-            // Extrair o hash do torrent da descrição (ex.: "48dcb808054040d78cef78804c0d43ceefe62509")
+            // Extrair o hash do torrent da descrição
             const hashMatch = item.contentSnippet.match(/[a-fA-F0-9]{40}/);
             if (!hashMatch) {
                 console.error('Hash do torrent não encontrado na descrição:', item.contentSnippet);
