@@ -17,12 +17,8 @@ const manifest = {
 
 const builder = new addonBuilder(manifest);
 
-// Armazenar os handlers manualmente
-let catalogHandler;
-let streamHandler;
-
-// Definir o handler do catálogo
-builder.defineCatalogHandler(async ({ type, id }) => {
+// Função para lidar com o catálogo
+const handleCatalog = async ({ type, id }) => {
     console.log(`Recebida requisição para type=${type}, id=${id}`);
     if (type === 'series' && id === 'nyaa-multisubs') {
         try {
@@ -54,13 +50,10 @@ builder.defineCatalogHandler(async ({ type, id }) => {
     }
     console.log('Type ou ID não correspondem, retornando catálogo vazio');
     return { metas: [] };
-});
+};
 
-// Armazenar o handler do catálogo
-catalogHandler = builder.defineCatalogHandler;
-
-// Definir o handler de stream
-builder.defineStreamHandler(async ({ type, id }) => {
+// Função para lidar com o stream
+const handleStream = async ({ type, id }) => {
     console.log(`Recebida requisição de stream para type=${type}, id=${id}`);
     try {
         console.log('Tentando carregar o feed do Nyaa.si para stream...');
@@ -81,10 +74,11 @@ builder.defineStreamHandler(async ({ type, id }) => {
         console.error('Erro ao carregar stream:', error.message, error.stack);
         return { streams: [] };
     }
-});
+};
 
-// Armazenar o handler de stream
-streamHandler = builder.defineStreamHandler;
+// Definir os handlers apenas uma vez
+builder.defineCatalogHandler(handleCatalog);
+builder.defineStreamHandler(handleStream);
 
 // Rota para o manifest
 app.get('/manifest.json', (req, res) => {
@@ -97,7 +91,7 @@ app.get('/manifest.json', (req, res) => {
 app.get('/catalog/:type/:id.json', async (req, res) => {
     console.log('Requisição recebida para /catalog');
     try {
-        const result = await catalogHandler({ type: req.params.type, id: req.params.id });
+        const result = await handleCatalog({ type: req.params.type, id: req.params.id });
         res.setHeader('Content-Type', 'application/json');
         res.json(result);
     } catch (error) {
@@ -110,7 +104,7 @@ app.get('/catalog/:type/:id.json', async (req, res) => {
 app.get('/stream/:type/:id.json', async (req, res) => {
     console.log('Requisição recebida para /stream');
     try {
-        const result = await streamHandler({ type: req.params.type, id: req.params.id });
+        const result = await handleStream({ type: req.params.type, id: req.params.id });
         res.setHeader('Content-Type', 'application/json');
         res.json(result);
     } catch (error) {
